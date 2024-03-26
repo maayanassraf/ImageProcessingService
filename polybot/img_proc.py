@@ -1,5 +1,6 @@
 from pathlib import Path
 from matplotlib.image import imread, imsave
+import random
 
 
 def rgb2gray(rgb):
@@ -51,17 +52,70 @@ class Img:
             self.data[i] = res
 
     def rotate(self):
-        # TODO remove the `raise` below, and write your implementation
-        raise NotImplementedError()
+        result = []
+        temp = zip(*self.data)
+        for i in temp:
+            reversed_i = list(i[::-1])
+            result.append(reversed_i)
+        self.data = result
 
     def salt_n_pepper(self):
-        # TODO remove the `raise` below, and write your implementation
-        raise NotImplementedError()
+        result = []
+        for row in self.data:
+            row_result = []
+            for item in row:
+                pix_random = random.random()
+                if pix_random < 0.2:
+                    row_result.append(255)
+                elif pix_random > 0.8:
+                    row_result.append(0)
+                else:
+                    row_result.append(item)
+            result.append(row_result)
+        self.data = result
 
     def concat(self, other_img, direction='horizontal'):
-        # TODO remove the `raise` below, and write your implementation
-        raise NotImplementedError()
+        height_img1 = len(self.data)
+        height_img2 = len(other_img.data)
+        width_img1 = len(self.data[0])
+        width_img2 = len(other_img.data[0])
+        if height_img1 != height_img2 or width_img1 != width_img2:
+            raise RuntimeError("the images aren't in the same size, can't concatenate")
+        result = []
+        for row in range(len(self.data)):
+            new_row = self.data[row] + other_img.data[row]
+            result.append(new_row)
+        self.data = result
 
     def segment(self):
-        # TODO remove the `raise` below, and write your implementation
-        raise NotImplementedError()
+        result = []
+        for row in self.data:
+            row_result = []
+            for item in row:
+                if item > 100:
+                    row_result.append(255)
+                else:
+                    row_result.append(0)
+            result.append(row_result)
+        self.data = result
+
+    def find_filter(self, msg):
+        all_filters = {'contour': 'self.contour()', 'rotate': 'self.rotate()', 'segment': 'self.segment()', 'salt and pepper': 'self.salt_n_pepper()'}
+        is_existing = False
+        if 'blur' in msg:
+            blur_level = 16
+            is_existing = True
+            for word in msg.split():
+                try:
+                    blur_level = int(word)
+                except:
+                    break
+            self.blur(blur_level=blur_level)
+        else:
+            for key in all_filters:
+                if key in msg:
+                    is_existing = True
+                    eval(all_filters[key])
+                    return
+        if not is_existing:
+            return False

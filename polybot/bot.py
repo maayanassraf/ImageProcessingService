@@ -75,4 +75,46 @@ class QuoteBot(Bot):
 
 
 class ImageProcessingBot(Bot):
-    pass
+    def __init__(self, token, telegram_chat_url):
+        super().__init__(token, telegram_chat_url)
+        self.media_group = []
+
+    def handle_message(self, msg):
+        logger.info(f'Incoming message: {msg}')
+        if self.is_current_msg_photo(msg):
+            try:
+                is_concat = False
+                if msg["media_group_id"]:
+                    self.media_group.append(msg)
+                if len(self.media_group) == 2:
+                    if self.media_group[0]["caption"] == "concat" or self.media_group[1]["caption"] == "concat":
+                        path_to_image1 = self.download_user_photo(self.media_group[0])
+                        image1 = Img(path_to_image1)
+                        path_to_image2 = self.download_user_photo(self.media_group[1])
+                        image2 = Img(path_to_image2)
+                        image1.concat(image2)
+                        path_to_filtered = image1.save_img()
+                        self.send_photo(msg['chat']['id'], path_to_filtered)
+                        self.media_group = []
+                return
+            except:
+                try:
+                    photo_filter = msg["caption"]
+                    photo_filter = photo_filter.lower()
+                except:
+                    self.send_text(msg['chat']['id'], f'You didn\'t mention filter to apply.')
+                    return
+                try:
+                    path_to_image = self.download_user_photo(msg)
+                    image = Img(path_to_image)
+                    apply_filter = image.find_filter(photo_filter)
+                    if apply_filter is False:
+                        self.send_text((msg['chat']['id']), f'The filter you mentioned doesn\'t exist.')
+                        return
+                    path_to_filtered = image.save_img()
+                    self.send_photo((msg['chat']['id']), path_to_filtered)
+                except:
+                    self.send_text((msg['chat']['id']), f'Unknown error occurred, please try again')
+        else:
+            self.send_text((msg['chat']['id']), f'for filtering photo, please send a photo.')
+
